@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PowerLine Sag Monitor | Live Demo with Data</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+}
+
+/* ===== LIGHT COLOUR THEME ===== */
+:root{
+  --bg: #f4f7fc;
+  --card: #ffffff;
+  --card2: #f8fafc;
+  --border: #e2e8f0;
+  --accent: #2c6e9e;
+  --green: #2b7e3a;
+  --yellow: #b45f06;
+  --red: #c23b22;
+  --text: #1e2a3a;
+  --muted: #5a6e7c;
+  --hover-bg: #f1f5f9;
+  --font-h:'Orbitron',sans-serif;
+  --font-b:'Inter',sans-serif;
+}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font-b);
+  min-height:100vh;
+}
+
+.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px 28px;
+  background:var(--card);
+  border-bottom:1px solid var(--border);
+  position:sticky;
+  top:0;
+  z-index:200;
+  box-shadow:0 2px 8px rgba(0,0,0,0.02);
+}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand-icon{width:32px;height:32px;}
+.brand h1{
+  font-family:var(--font-h);
+  font-size:15px;
+  letter-spacing:3px;
+  color:var(--accent);
+}
+.brand span{
+  font-size:10px;
+  color:var(--muted);
+  letter-spacing:1px;
+  display:block;
+}
+.live-pill{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  background:#e0f2e9;
+  border:1px solid #c0dbc8;
+  padding:4px 12px;
+  border-radius:20px;
+  font-family:var(--font-h);
+  font-size:10px;
+  letter-spacing:2px;
+  color:var(--green);
+}
+.dot{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:var(--green);
+  animation:blink 1.4s infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.clock{
+  font-family:var(--font-h);
+  font-size:11px;
+  color:var(--muted);
+}
+
+.cfg{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:12px;
+  padding:12px 28px;
+  background:#f0f4f8;
+  border-bottom:1px solid var(--border);
+}
+.cfg label{
+  font-size:11px;
+  color:var(--muted);
+  letter-spacing:1px;
+  font-weight:500;
+}
+.cfg input,.cfg select{
+  background:var(--card);
+  border:1px solid var(--border);
+  color:var(--text);
+  font-family:var(--font-b);
+  font-size:12px;
+  padding:6px 12px;
+  border-radius:8px;
+  outline:none;
+  transition:border-color .2s, box-shadow .2s;
+}
+.cfg input:focus,.cfg select:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 2px rgba(44,110,158,0.1);
+}
+.cfg .go{
+  background:var(--accent);
+  color:white;
+  border:none;
+  font-family:var(--font-h);
+  font-size:11px;
+  letter-spacing:1px;
+  padding:6px 20px;
+  border-radius:8px;
+  cursor:pointer;
+  transition:background .2s;
+}
+.cfg .go:hover{background:#1d4e73;}
+.cfg .demo-btn{
+  background:#6c757d;
+  color:white;
+  border:none;
+  font-family:var(--font-h);
+  font-size:11px;
+  letter-spacing:1px;
+  padding:6px 20px;
+  border-radius:8px;
+  cursor:pointer;
+  transition:background .2s;
+}
+.cfg .demo-btn:hover{background:#5a6268;}
+
+.search-wrap{padding:20px 28px 0;}
+.search-box{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:10px 16px;
+  transition:border-color .2s, box-shadow .2s;
+}
+.search-box:focus-within{
+  border-color:var(--accent);
+  box-shadow:0 2px 6px rgba(0,0,0,0.05);
+}
+.search-box input{
+  background:transparent;
+  border:none;
+  outline:none;
+  color:var(--text);
+  font-family:var(--font-b);
+  font-size:14px;
+  flex:1;
+}
+.search-box input::placeholder{color:var(--muted);}
+.search-icon{color:var(--muted);font-size:16px;}
+
+.main{padding:20px 28px;display:grid;gap:20px;}
+
+.row1{display:grid;grid-template-columns:1fr 320px;gap:20px;}
+@media(max-width:800px){.row1{grid-template-columns:1fr;}}
+
+.map-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:20px;
+  overflow:hidden;
+  min-height:280px;
+  position:relative;
+  box-shadow:0 4px 10px rgba(0,0,0,0.02);
+}
+.map-card-header{
+  padding:14px 18px;
+  border-bottom:1px solid var(--border);
+  font-family:var(--font-h);
+  font-size:11px;
+  letter-spacing:2px;
+  color:var(--muted);
+  display:flex;
+  align-items:center;
+  gap:8px;
+  background:#fefefe;
+}
+.map-card-header::before{
+  content:'';
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:var(--accent);
+}
+#leaflet-map{height:240px;border-radius:0 0 16px 16px;}
+.map-placeholder{
+  height:240px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  font-size:12px;
+  color:var(--muted);
+  background:#f9fbfd;
+}
+.map-placeholder svg{opacity:.5;}
+
+.notif-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  box-shadow:0 4px 8px rgba(0,0,0,0.02);
+}
+.notif-title{
+  font-family:var(--font-h);
+  font-size:11px;
+  letter-spacing:2px;
+  color:var(--muted);
+}
+.triangle-wrap{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:12px;
+  flex:1;
+  justify-content:center;
+}
+.triangle{
+  width:0;
+  height:0;
+  border-left:55px solid transparent;
+  border-right:55px solid transparent;
+  border-bottom:95px solid #cbd5e1;
+  position:relative;
+  transition:border-bottom-color .3s;
+  cursor:pointer;
+}
+.triangle-inner{
+  position:absolute;
+  top:22px;
+  left:-42px;
+  width:0;
+  height:0;
+  border-left:42px solid transparent;
+  border-right:42px solid transparent;
+  border-bottom:72px solid var(--card);
+  z-index:1;
+}
+.triangle-icon{
+  position:absolute;
+  top:32px;
+  left:-12px;
+  z-index:2;
+  font-size:22px;
+  font-weight:900;
+  font-family:var(--font-h);
+  color:var(--text);
+}
+.triangle.normal{border-bottom-color:var(--green);}
+.triangle.notice{border-bottom-color:var(--yellow);}
+.triangle.danger{border-bottom-color:var(--red);animation:flashRed 0.9s infinite;}
+@keyframes flashRed{
+  0%,100%{border-bottom-color:var(--red);}
+  50%{border-bottom-color:#ff9966;}
+}
+.notif-status{
+  text-align:center;
+  font-family:var(--font-h);
+  font-size:13px;
+  letter-spacing:2px;
+  padding:6px 14px;
+  border-radius:40px;
+  font-weight:700;
+}
+.notif-status.normal{background:#e6f4ea;color:var(--green);border:1px solid #bcd9c4;}
+.notif-status.notice{background:#fff2e0;color:var(--yellow);border:1px solid #ffe0b5;}
+.notif-status.danger{background:#ffe6e0;color:var(--red);border:1px solid #ffcdbb;}
+.notif-desc{font-size:12px;color:var(--muted);text-align:center;line-height:1.5;}
+
+.thresh-guide{margin-top:4px;}
+.thresh-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 8px;
+  border-radius:10px;
+  margin-bottom:6px;
+  font-size:11px;
+  font-weight:500;
+}
+.thresh-row.t-normal{background:#eef6ef;color:var(--green);}
+.thresh-row.t-notice{background:#fef5e6;color:var(--yellow);}
+.thresh-row.t-danger{background:#feede8;color:var(--red);}
+.thresh-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.thresh-row.t-normal .thresh-dot{background:var(--green);}
+.thresh-row.t-notice .thresh-dot{background:var(--yellow);}
+.thresh-row.t-danger .thresh-dot{background:var(--red);}
+
+.row2{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+@media(max-width:700px){.row2{grid-template-columns:1fr;}}
+
+.data-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:22px;
+  position:relative;
+  overflow:hidden;
+  transition:all .2s;
+  box-shadow:0 2px 6px rgba(0,0,0,0.02);
+}
+.data-card::after{
+  content:'';
+  position:absolute;
+  bottom:0;
+  left:0;
+  right:0;
+  height:3px;
+  transition:background .5s;
+}
+.data-card.sag::after{background:var(--accent);}
+.data-card.ct::after{background:var(--yellow);}
+.data-card.status::after{background:var(--green);}
+.data-card.danger-card{border-color:var(--red)!important;background:#fff8f6;}
+.dc-label{
+  font-family:var(--font-h);
+  font-size:10px;
+  letter-spacing:2px;
+  color:var(--muted);
+  margin-bottom:14px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.dc-label svg{opacity:.7;}
+.dc-value{
+  font-family:var(--font-h);
+  font-size:38px;
+  font-weight:700;
+  line-height:1;
+  margin-bottom:8px;
+  transition:color .3s;
+}
+.dc-unit{font-size:16px;font-weight:400;color:var(--muted);margin-left:3px;}
+.dc-sub{font-size:12px;color:var(--muted);}
+
+.gauge-section{margin-top:14px;}
+.gauge-track{
+  width:100%;
+  height:8px;
+  border-radius:6px;
+  overflow:hidden;
+  background:linear-gradient(to right, var(--green) 0%, var(--green) 33%, var(--yellow) 33%, var(--yellow) 66%, var(--red) 66%, var(--red) 100%);
+  position:relative;
+  margin-bottom:6px;
+  border:1px solid #e2e8f0;
+}
+.gauge-cursor{
+  position:absolute;
+  top:-3px;
+  width:14px;
+  height:14px;
+  border-radius:50%;
+  background:white;
+  border:2px solid var(--accent);
+  transform:translateX(-50%);
+  transition:left .5s;
+  box-shadow:0 0 0 2px rgba(44,110,158,0.2);
+}
+.gauge-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);font-weight:500;}
+
+.row3{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+@media(max-width:700px){.row3{grid-template-columns:1fr;}}
+.chart-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:18px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.02);
+}
+.chart-card h3{
+  font-family:var(--font-h);
+  font-size:10px;
+  letter-spacing:2px;
+  color:var(--muted);
+  margin-bottom:16px;
+}
+.chart-wrap{height:180px;position:relative;}
+
+#err{
+  display:none;
+  background:#fee9e6;
+  border-left:4px solid var(--red);
+  color:#b13e2a;
+  padding:10px 20px;
+  border-radius:12px;
+  margin:0 28px 12px;
+  font-size:13px;
+  font-weight:500;
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <svg class="brand-icon" viewBox="0 0 32 32">
+      <rect width="32" height="32" rx="7" fill="#eef2ff"/>
+      <path d="M4 20 Q10 8 16 16 Q22 24 28 12" stroke="#2c6e9e" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <circle cx="16" cy="16" r="3" fill="#b45f06"/>
+      <line x1="16" y1="13" x2="16" y2="8" stroke="#b45f06" stroke-width="1.5"/>
+    </svg>
+    <div>
+      <h1>SAG MONITOR</h1>
+      <span>POWERLINE NODE — DEMO MODE</span>
+    </div>
+  </div>
+  <div class="live-pill"><div class="dot"></div>DEMO DATA</div>
+  <div class="clock" id="clock">--:--:--</div>
+</div>
+
+<div class="cfg">
+  <label>CHANNEL ID</label>
+  <input id="chId" placeholder="e.g. 2512345"/>
+  <label>READ API KEY</label>
+  <input id="apiKey" placeholder="Your ThingSpeak Read API Key"/>
+  <label>SAG→</label>
+  <select id="fSag">
+    <option value="field1">field1</option><option value="field2">field2</option>
+    <option value="field3">field3</option><option value="field4">field4</option>
+  </select>
+  <label>CT→</label>
+  <select id="fCT">
+    <option value="field2">field2</option><option value="field1">field1</option>
+    <option value="field3">field3</option>
+  </select>
+  <label>LAT→</label>
+  <select id="fLat">
+    <option value="field3">field3</option><option value="field4">field4</option>
+    <option value="field5">field5</option>
+  </select>
+  <label>LNG→</label>
+  <select id="fLng">
+    <option value="field4">field4</option><option value="field5">field5</option>
+    <option value="field6">field6</option>
+  </select>
+  <button class="go" onclick="fetchData()">FETCH</button>
+  <button class="demo-btn" onclick="loadDemoData()">📊 LOAD DEMO DATA</button>
+</div>
+
+<div class="search-wrap">
+  <div class="search-box">
+    <span class="search-icon">⌕</span>
+    <input type="text" placeholder="Search node ID, location, or status…" id="searchInput"/>
+  </div>
+</div>
+<div id="err"></div>
+
+<div class="main">
+  <div class="row1">
+    <div class="map-card">
+      <div class="map-card-header">LOCATION WINDOW (DEMO: New York)</div>
+      <div id="map-placeholder" class="map-placeholder">
+        <svg width="60" height="60" viewBox="0 0 60 60">
+          <circle cx="30" cy="25" r="14" stroke="#2c6e9e" stroke-width="2" fill="none"/>
+          <circle cx="30" cy="25" r="5" fill="#2c6e9e"/>
+          <path d="M30 39 Q20 50 30 58 Q40 50 30 39Z" fill="#2c6e9e" opacity=".4"/>
+        </svg>
+        <span>Click "LOAD DEMO DATA" to see live example</span>
+      </div>
+      <div id="leaflet-map" style="display:none;height:240px;"></div>
+    </div>
+
+    <div class="notif-card">
+      <div class="notif-title">NOTIFICATION OF BREAKAGE</div>
+      <div class="triangle-wrap">
+        <div class="triangle normal" id="triangle">
+          <div class="triangle-inner"></div>
+          <div class="triangle-icon" id="tri-icon">✓</div>
+        </div>
+        <div class="notif-status normal" id="notif-status">NORMAL</div>
+        <div class="notif-desc" id="notif-desc">Sag angle within safe range.<br>No action required.</div>
+      </div>
+      <div class="thresh-guide">
+        <div class="thresh-row t-normal"><div class="thresh-dot"></div><span>0° – 30° &nbsp;→&nbsp; Normal</span></div>
+        <div class="thresh-row t-notice"><div class="thresh-dot"></div><span>30° – 45° &nbsp;→&nbsp; Noticeable</span></div>
+        <div class="thresh-row t-danger"><div class="thresh-dot"></div><span>45°+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→&nbsp; Breakage</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row2">
+    <div class="data-card sag" id="card-sag">
+      <div class="dc-label"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M1 10 Q4 2 7 7 Q10 12 13 4" stroke="#2c6e9e" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>SAG ANGLE</div>
+      <div class="dc-value" id="v-sag" style="color:var(--accent)">—<span class="dc-unit">°</span></div>
+      <div class="dc-sub" id="sub-sag">Waiting for data…</div>
+      <div class="gauge-section"><div class="gauge-track"><div class="gauge-cursor" id="sag-cursor" style="left:0%"></div></div><div class="gauge-labels"><span>0°</span><span>30°</span><span>45°</span><span>90°</span></div></div>
+    </div>
+    <div class="data-card ct" id="card-ct">
+      <div class="dc-label"><svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5" stroke="#b45f06" stroke-width="1.5" fill="none"/><line x1="7" y1="4" x2="7" y2="7" stroke="#b45f06" stroke-width="1.5"/><line x1="7" y1="7" x2="10" y2="9" stroke="#b45f06" stroke-width="1.5"/></svg>CURRENT (CT)</div>
+      <div class="dc-value" id="v-ct" style="color:#b45f06">—<span class="dc-unit">A</span></div>
+      <div class="dc-sub" id="sub-ct">Waiting for data…</div>
+      <div style="margin-top:12px;font-size:11px;color:var(--muted);"><span id="ct-note">—</span></div>
+    </div>
+    <div class="data-card status" id="card-status">
+      <div class="dc-label"><svg width="14" height="14" viewBox="0 0 14 14"><rect x="2" y="2" width="10" height="10" rx="2" stroke="#2b7e3a" stroke-width="1.5" fill="none"/><path d="M4 7 l2 2 l4-4" stroke="#2b7e3a" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>NODE STATUS</div>
+      <div class="dc-value" id="v-status" style="color:var(--green);font-size:22px;margin-top:6px;">STANDBY</div>
+      <div class="dc-sub" id="sub-status" style="margin-top:8px;">—</div>
+      <div style="margin-top:14px;font-size:11px;color:var(--muted);">Last updated: <span id="last-up" style="color:var(--text);">—</span></div>
+    </div>
+  </div>
+
+  <div class="row3">
+    <div class="chart-card"><h3>SAG ANGLE — HISTORY (LAST 20)</h3><div class="chart-wrap"><canvas id="sagChart"></canvas></div></div>
+    <div class="chart-card"><h3>CURRENT (CT) — HISTORY (LAST 20)</h3><div class="chart-wrap"><canvas id="ctChart"></canvas></div></div>
+  </div>
+</div>
+
+<script>
+let sagCI=null, ctCI=null;
+let demoActive = false;
+
+setInterval(()=>{
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString();
+},1000);
+
+// Demo data loader: populates everything with realistic values
+function loadDemoData() {
+  demoActive = true;
+  // realistic demo values
+  const demoLat = 40.7128;
+  const demoLng = -74.0060;
+  const demoSag = 24.7;   // normal range
+  const demoCT = 183.5;   // amps
+  const demoTime = new Date().toLocaleString();
+
+  // Update cards
+  updateCards(demoSag, demoCT, demoTime);
+  updateTriangle(demoSag);
+  
+  // Generate historical data for charts (20 points)
+  const demoFeeds = [];
+  const now = new Date();
+  for (let i = 19; i >= 0; i--) {
+    const ts = new Date(now.getTime() - i * 30 * 60000);
+    // Sag values: slight variation around 20-28 degrees
+    const sagVal = 20 + Math.sin(i * 0.8) * 4 + (Math.random() * 2);
+    // CT values: 160-200A range
+    const ctVal = 170 + Math.cos(i * 0.6) * 15 + (Math.random() * 6);
+    demoFeeds.push({
+      created_at: ts.toISOString(),
+      field1: sagVal.toFixed(1),
+      field2: ctVal.toFixed(1),
+      field3: demoLat,
+      field4: demoLng
+    });
+  }
+  // ensure latest point matches demoSag/demoCT exactly
+  if (demoFeeds.length > 0) {
+    demoFeeds[demoFeeds.length-1].field1 = demoSag;
+    demoFeeds[demoFeeds.length-1].field2 = demoCT;
+  }
+  
+  updateChartsWithFeeds(demoFeeds, 'field1', 'field2');
+  renderMap(demoLat, demoLng, demoSag, demoCT);
+  document.querySelector('.brand span').textContent = 'POWERLINE NODE — DEMO ACTIVE';
+  const livePill = document.querySelector('.live-pill');
+  livePill.innerHTML = '<div class="dot"></div>DEMO MODE';
+  livePill.style.background = "#e9ecef";
+  livePill.style.borderColor = "#ced4da";
+  showErr(''); // clear any error
+  hideErr();
+}
+
+// Core update functions (same as original but adapted for demo & real)
+function updateCards(sag, ct, time){
+  const sagEl = document.getElementById('v-sag');
+  const subSag = document.getElementById('sub-sag');
+  const cursor = document.getElementById('sag-cursor');
+  const cardSag = document.getElementById('card-sag');
+
+  if(sag !== null && !isNaN(sag)){
+    sagEl.innerHTML = sag.toFixed(1) + '<span class="dc-unit">°</span>';
+    const pct = Math.min(100, Math.max(0, (sag/90)*100));
+    cursor.style.left = pct + '%';
+    const s = getLevel(sag);
+    sagEl.style.color = s==='normal'?'var(--accent)': s==='notice'?'var(--yellow)':'var(--red)';
+    subSag.textContent = s==='normal'?'Normal range (0°–30°)': s==='notice'?'Noticeable (30°–45°)':'⚠ BREAKAGE DETECTED (>45°)';
+    if(s==='danger') cardSag.classList.add('danger-card'); else cardSag.classList.remove('danger-card');
+  } else {
+    sagEl.innerHTML = '—<span class="dc-unit">°</span>';
+  }
+
+  const ctEl = document.getElementById('v-ct');
+  const subCt = document.getElementById('sub-ct');
+  const ctNote = document.getElementById('ct-note');
+  if(ct !== null && !isNaN(ct)){
+    ctEl.innerHTML = ct.toFixed(1) + '<span class="dc-unit">A</span>';
+    const level = getLevel(sag);
+    if(level === 'danger'){
+      ctEl.style.color = 'var(--red)';
+      subCt.textContent = 'Current near zero — Line broken';
+      ctNote.textContent = '⚠ Line breakage suspected';
+    } else {
+      ctEl.style.color = '#b45f06';
+      subCt.textContent = ct > 0 ? 'Current flowing — line intact' : 'No current detected';
+      ctNote.textContent = ct > 0 ? '✓ Line carrying nominal load' : '⚠ No current flow';
+    }
+  } else {
+    ctEl.innerHTML = '—<span class="dc-unit">A</span>';
+  }
+
+  const vSt = document.getElementById('v-status');
+  const subSt = document.getElementById('sub-status');
+  const lastUp = document.getElementById('last-up');
+  const level = getLevel(sag);
+  vSt.textContent = level==='normal'?'NORMAL': level==='notice'?'WARNING':'BREAKAGE';
+  vSt.style.color = level==='normal'?'var(--green)': level==='notice'?'var(--yellow)':'var(--red)';
+  subSt.textContent = level==='normal'?'All parameters within limits':
+                       level==='notice'?'Sag angle elevated — inspect line':
+                       '⚠ Emergency: relay cutoff triggered!';
+  if(time) lastUp.textContent = typeof time === 'string' ? new Date(time).toLocaleString() : time;
+}
+
+function updateTriangle(sag){
+  const tri = document.getElementById('triangle');
+  const icon = document.getElementById('tri-icon');
+  const status = document.getElementById('notif-status');
+  const desc = document.getElementById('notif-desc');
+  const level = getLevel(sag);
+  tri.className = 'triangle ' + level;
+  status.className = 'notif-status ' + level;
+  if(level==='normal'){
+    icon.textContent = '✓';
+    status.textContent = 'NORMAL';
+    desc.innerHTML = 'Sag angle within safe range.<br>No action required.';
+  } else if(level==='notice'){
+    icon.textContent = '!';
+    status.textContent = 'NOTICEABLE';
+    desc.innerHTML = 'Sag is elevated (30°–45°).<br>Monitor closely.';
+  } else {
+    icon.textContent = '✕';
+    status.textContent = 'BREAKAGE';
+    desc.innerHTML = '⚠ Sag >45° detected!<br>Trigger relay cutoff NOW.';
+  }
+}
+
+function updateChartsWithFeeds(feeds, fSag, fCT){
+  const labels = feeds.map(f => {
+    if(!f.created_at) return '';
+    const d = new Date(f.created_at);
+    return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
+  });
+  const sagData = feeds.map(f => parseFloat(f[fSag]) || 0);
+  const ctData = feeds.map(f => parseFloat(f[fCT]) || 0);
+
+  const baseOpts = (unit) => ({
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>`${c.parsed.y.toFixed(1)} ${unit}`}}},
+    scales:{
+      x:{ticks:{color:'#5a6e7c',font:{size:9},maxTicksLimit:6},grid:{color:'#e2e8f0'}},
+      y:{ticks:{color:'#5a6e7c',font:{size:10}},grid:{color:'#e9eef3'}}
+    }
+  });
+
+  const sagCtx = document.getElementById('sagChart').getContext('2d');
+  if(sagCI) sagCI.destroy();
+  sagCI = new Chart(sagCtx,{type:'line',data:{labels,datasets:[{
+    label:'Sag',data:sagData,borderColor:'#2c6e9e',backgroundColor:'#eef2ff',
+    borderWidth:2,tension:.3,pointRadius:2,fill:true,pointBackgroundColor:'#2c6e9e',
+    pointBorderColor:'#ffffff'
+  }]},options:baseOpts('°')});
+
+  const ctCtx = document.getElementById('ctChart').getContext('2d');
+  if(ctCI) ctCI.destroy();
+  ctCI = new Chart(ctCtx,{type:'line',data:{labels,datasets:[{
+    label:'CT',data:ctData,borderColor:'#b45f06',backgroundColor:'#fff2e0',
+    borderWidth:2,tension:.3,pointRadius:2,fill:true,pointBackgroundColor:'#b45f06',
+    pointBorderColor:'#ffffff'
+  }]},options:baseOpts('A')});
+}
+
+function renderMap(lat,lng,sag,ct){
+  const ph = document.getElementById('map-placeholder');
+  const mel = document.getElementById('leaflet-map');
+  ph.style.display='none'; mel.style.display='block';
+  function buildMap(){
+    if(window._mapInst){window._mapInst.remove();window._mapInst=null;}
+    window._mapInst = L.map(mel).setView([lat,lng],13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(window._mapInst);
+    const level = getLevel(sag);
+    const col = level==='normal'? '#2b7e3a' : (level==='notice'? '#b45f06' : '#c23b22');
+    L.circleMarker([lat,lng],{radius:12,fillColor:col,color:'#ffffff',weight:2,fillOpacity:.9})
+      .addTo(window._mapInst)
+      .bindPopup(`<b>PowerLine Node</b><br>Sag: ${sag?.toFixed(1)}°<br>CT: ${ct?.toFixed(1)} A`)
+      .openPopup();
+  }
+  if(!window.L){
+    const css=document.createElement('link');
+    css.rel='stylesheet';css.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(css);
+    const js=document.createElement('script');
+    js.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet-src.js';
+    js.onload=buildMap; document.head.appendChild(js);
+  } else buildMap();
+}
+
+// Original ThingSpeak fetch (kept for real data)
+async function fetchData(){
+  const chId = document.getElementById('chId').value.trim();
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const fSag = document.getElementById('fSag').value;
+  const fCT = document.getElementById('fCT').value;
+  const fLat = document.getElementById('fLat').value;
+  const fLng = document.getElementById('fLng').value;
+  if(!chId){ showErr('Please enter ThingSpeak Channel ID.'); return; }
+  hideErr();
+  const key = apiKey ? `&api_key=${apiKey}` : '';
+  try{
+    const [lastResp, feedResp] = await Promise.all([
+      fetch(`https://api.thingspeak.com/channels/${chId}/feeds/last.json?${key}`).then(r=>r.json()),
+      fetch(`https://api.thingspeak.com/channels/${chId}/feeds.json?results=20${key}`).then(r=>r.json()),
+    ]);
+    const sag = parseFloat(lastResp[fSag]) ?? null;
+    const ct = parseFloat(lastResp[fCT]) ?? null;
+    const lat = parseFloat(lastResp[fLat]) || null;
+    const lng = parseFloat(lastResp[fLng]) || null;
+    const time = lastResp.created_at || null;
+    const feeds = feedResp.feeds || [];
+    updateCards(sag, ct, time);
+    updateTriangle(sag);
+    updateChartsWithFeeds(feeds, fSag, fCT);
+    if(lat && lng) renderMap(lat, lng, sag, ct);
+    document.querySelector('.brand span').textContent = 'POWERLINE NODE — THINGSPEAK';
+    const livePill = document.querySelector('.live-pill');
+    livePill.innerHTML = '<div class="dot"></div>LIVE';
+    livePill.style.background = "#e0f2e9";
+    livePill.style.borderColor = "#c0dbc8";
+  } catch(e){ showErr('Fetch failed: ' + e.message); }
+}
+
+function getLevel(sag){
+  if(sag===null || sag===undefined) return 'normal';
+  if(sag>=45) return 'danger';
+  if(sag>=30) return 'notice';
+  return 'normal';
+}
+function showErr(m){ const e=document.getElementById('err'); if(m){e.style.display='block'; e.textContent='⚠ '+m;} else e.style.display='none'; }
+function hideErr(){ document.getElementById('err').style.display='none'; }
+
+// Auto-load demo on page start so user sees rich data immediately
+window.addEventListener('DOMContentLoaded', () => {
+  loadDemoData();
+});
+</script>
+</body>
+</html>
